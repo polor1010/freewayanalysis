@@ -1,7 +1,7 @@
 package routers
 
 import (
-	"freewaypredict/controllers"
+	"freewayanalysis/controllers"
 	"github.com/astaxie/beego"
 )
 

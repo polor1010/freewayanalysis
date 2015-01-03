@@ -122,9 +122,9 @@ func GetMonthByLocationID(date string, location Location) string {
 	fmt.Println(results)
 
 	speedChartData := &SpeedChart{
-		LoctionID: location.LocationID,
-		TimeRange: 30,
-		Data:      speedDays}
+		LocationID: location.LocationID,
+		TimeRange:  30,
+		Data:       speedDays}
 
 	SpeedChartJson, _ := json.Marshal(speedChartData)
 	//fmt.Println(string(SpeedChartJson))
@@ -209,9 +209,9 @@ func GetDayByLocationID(date string, locations Location) string {
 	}
 
 	speedChartData := &SpeedChart{
-		LoctionID: locations.LocationID,
-		TimeRange: 1,
-		Data:      speedHours}
+		LocationID: locations.LocationID,
+		TimeRange:  1,
+		Data:       speedHours}
 
 	SpeedChartJson, _ := json.Marshal(speedChartData)
 	fmt.Println(string(SpeedChartJson))
@@ -239,7 +239,7 @@ func GetSmoothData() {
 		t = t.Add(time.Hour * time.Duration(8))
 
 		t2 := time.Now().UTC()
-		t2 = t2.Add(time.Hour * time.Duration(8))
+		t2 = t2.Add(time.Hour * (time.Duration(8) + time.Duration(24*7)))
 
 		if t.Weekday() == t2.Weekday() {
 

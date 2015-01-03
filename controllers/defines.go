@@ -12,9 +12,9 @@ type SpeedTime struct {
 }
 
 type SpeedChart struct {
-	LoctionID string
-	TimeRange int
-	Data      []SpeedTime
+	LocationID string
+	TimeRange  int
+	Data       []SpeedTime
 }
 
 type Location struct {

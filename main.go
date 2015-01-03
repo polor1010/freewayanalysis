@@ -1,8 +1,8 @@
 package main
 
 import (
-	"freewaypredict/controllers"
-	_ "freewaypredict/routers"
+	"freewayanalysis/controllers"
+	_ "freewayanalysis/routers"
 	"github.com/astaxie/beego"
 	"github.com/robfig/cron"
 )
