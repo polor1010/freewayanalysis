@@ -414,7 +414,8 @@ func SaveCSVData(locationList []LocationInfo) {
 
 	day := fmt.Sprintf("%d%.2d%.2d%.2d%.2d", t.Year(), t.Month(), t.Day(), 0, 0)
 	t2, _ := time.Parse("200601021504", day)
-	t2 = t2.Add(time.Duration(-8) * time.Hour)
+	//t2 = t2.Add(time.Duration(-8) * time.Hour)
+	t2 = t2.Add(time.Hour * (time.Duration(-8) + time.Duration(24*7)))
 
 	for j := 0; j < TimeIntervals; j++ {
 
