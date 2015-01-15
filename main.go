@@ -11,7 +11,6 @@ func main() {
 	c := cron.New()
 	c.AddFunc("0 0 03 * * *", controllers.GetSmoothData)
 	c.Start()
-	//controllers.GetSmoothData()
 
 	beego.Run()
 

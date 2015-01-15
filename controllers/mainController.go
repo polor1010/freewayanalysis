@@ -18,6 +18,7 @@ func (this *MainController) Predict() {
 }
 
 func (this *MainController) Month() {
+	this.Data["xsrfdata"] = template.HTML(this.XsrfFormHtml())
 
 	date, _ := this.Ctx.Input.Params[":date"]
 	locationID, _ := this.Ctx.Input.Params[":locationID"]
@@ -37,6 +38,8 @@ func (this *MainController) Month() {
 
 func (this *MainController) Day() {
 
+	this.Data["xsrfdata"] = template.HTML(this.XsrfFormHtml())
+
 	date, _ := this.Ctx.Input.Params[":date"]
 
 	fmt.Println("(this *MainController) Day()")
@@ -55,6 +58,8 @@ func (this *MainController) Day() {
 }
 
 func (this *MainController) All() {
+
+	this.Data["xsrfdata"] = template.HTML(this.XsrfFormHtml())
 
 	date, _ := this.Ctx.Input.Params[":date"]
 

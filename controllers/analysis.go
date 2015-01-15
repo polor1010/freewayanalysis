@@ -86,7 +86,7 @@ func GetMonthByLocationID(date string, location Location) string {
 		var speedDay SpeedTime
 		t = t.Add(-time.Hour * 24)
 
-		fileName := fmt.Sprintf("../../../data/%d%.2d%.2d%.2d%.2d.csv", t.Year(), t.Month(), t.Day(), hour, index*5)
+		fileName := fmt.Sprintf("%s/%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), hour, index*5)
 
 		content, err := ioutil.ReadFile(fileName)
 
@@ -104,8 +104,8 @@ func GetMonthByLocationID(date string, location Location) string {
 				//(freewayID == location.FreewayID) &&
 				if locationID == location.LocationID {
 
-					speedDay.Direction1, _ = strconv.Atoi(strings.Split(lines[i], ",")[3])
-					speedDay.Direction2, _ = strconv.Atoi(strings.Split(lines[i], ",")[5])
+					//speedDay.Direction1, _ = strconv.Atoi(strings.Split(lines[i], ",")[3])
+					//speedDay.Direction2, _ = strconv.Atoi(strings.Split(lines[i], ",")[5])
 					speed1, _ := strconv.ParseFloat(strings.Split(lines[i], ",")[4], 64)
 					speed2, _ := strconv.ParseFloat(strings.Split(lines[i], ",")[6], 64)
 					speedDay.Speed1 = int(speed1 + 0.5)
@@ -147,10 +147,12 @@ func GetDayByLocationID(date string, locations Location) string {
 
 	day := fmt.Sprintf("%d%.2d%.2d%.2d%.2d", t.Year(), t.Month(), t.Day(), 0, 0)
 	t2, _ := time.Parse("200601021504", day)
-	t2 = t2.Add(time.Hour * time.Duration(-8)) //限定台灣時區
+	t2 = t2.Add(time.Hour*time.Duration(-8) + time.Minute*time.Duration(+5)) //限定台灣時區
 	fmt.Println(t2)
 	var searchResults []string
 	var speedHours []SpeedTime
+	var freewayID string
+	var direction string
 
 	for h := 0; h < 24; h++ {
 
@@ -160,14 +162,14 @@ func GetDayByLocationID(date string, locations Location) string {
 
 			var fileName string
 
-			sum1 := t.Hour()*60 + t.Minute()
+			sum1 := t.Hour()*60 + t.Minute()/5*5
 			sum2 := h*60 + m*5
 
 			if sum1 > sum2 {
-				fileName = fmt.Sprintf("../../../data/%d%.2d%.2d%.2d%.2d.csv", t2.Year(), t2.Month(), t2.Day(), t2.Hour(), m)
+				fileName = fmt.Sprintf("%s/%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Hour(), m)
 				//fmt.Println(fileName)
 			} else {
-				fileName = fmt.Sprintf("../../../data/predict/%d%.2d%.2d%.2d%.2d_.csv", t2.Year(), t2.Month(), t2.Day(), t2.Hour(), m)
+				fileName = fmt.Sprintf("%s/predict/%d%.2d%.2d%.2d%.2d_.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Hour(), m)
 				//fmt.Println(fileName)
 			}
 
@@ -185,9 +187,9 @@ func GetDayByLocationID(date string, locations Location) string {
 				for k := 1; k < len(lines)-1; k++ {
 
 					if locationID == strings.Split(lines[k], ",")[2] { //freewayID == strings.Split(lines[k], ",")[1] { //&& {
+						freewayID = strings.Split(lines[k], ",")[1]
+						direction = strings.Split(lines[k], ",")[3]
 						fmt.Println(lines[k])
-						speedHour.Direction1, _ = strconv.Atoi(strings.Split(lines[k], ",")[3])
-						speedHour.Direction2, _ = strconv.Atoi(strings.Split(lines[k], ",")[5])
 						speed1, _ := strconv.ParseFloat(strings.Split(lines[k], ",")[4], 64)
 						speed2, _ := strconv.ParseFloat(strings.Split(lines[k], ",")[6], 64)
 						speed1Sum += speed1
@@ -203,14 +205,18 @@ func GetDayByLocationID(date string, locations Location) string {
 		t2 = t2.Add(time.Hour)
 		fmt.Println(t2)
 
-		speedHour.Speed1 = int(speed1Sum/12 + 0.5)
-		speedHour.Speed2 = int(speed2Sum/12 + 0.5)
+		count := m/5 + 1
+
+		speedHour.Speed1 = int(speed1Sum/count + 0.5)
+		speedHour.Speed2 = int(speed2Sum/count + 0.5)
 		speedHours = append(speedHours, speedHour)
 	}
 
 	speedChartData := &SpeedChart{
 		LocationID: locations.LocationID,
+		Name:       GetInterchangeName(freewayID, locations.LocationID),
 		TimeRange:  1,
+		Direction:  direction,
 		Data:       speedHours}
 
 	SpeedChartJson, _ := json.Marshal(speedChartData)
@@ -295,6 +301,57 @@ func GetSmoothData() {
 
 	SaveCSVData(locationList)
 
+}
+
+func GetInterchangeName(freewayID string, locationID string) string {
+
+	interchangeList := GetInterchangeList()
+
+	var name string
+	count := 0
+	for i := 0; i < len(interchangeList); i++ {
+
+		if interchangeList[i].FreewayId == freewayID {
+
+			for j := 0; j < len(interchangeList[i].Locations); j++ {
+
+				if interchangeList[i].Locations[j] == locationID {
+					if count != 0 {
+						name += " - "
+					}
+					name += interchangeList[i].Name
+					count++
+				}
+			}
+		}
+	}
+
+	//fmt.Println(name)
+	return name
+}
+
+func GetInterchangeList() []Interchange {
+
+	var interchangeList []Interchange
+
+	content, err := ioutil.ReadFile("highway.json")
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+
+	var roads Road
+	err = json.Unmarshal(content, &roads)
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+
+	for i := 0; i < len(roads.Interchanges); i++ {
+
+		interchangeList = append(interchangeList, roads.Interchanges[i])
+		fmt.Println(interchangeList[i].Name)
+	}
+
+	return interchangeList
 }
 
 func GetLocationList() []LocationInfo {
@@ -417,11 +474,11 @@ func SaveCSVData(locationList []LocationInfo) {
 	//t2 = t2.Add(time.Duration(-8) * time.Hour)
 	t2 = t2.Add(time.Hour * (time.Duration(-8) + time.Duration(24*7)))
 
-	for j := 0; j < TimeIntervals; j++ {
+	for j := 0; j < TIME_INTERVALS; j++ {
 
 		minute := j % 12
 
-		filePath := fmt.Sprintf("../../../data/predict/%.4d%.2d%.2d%.2d%.2d_.csv", t2.Year(), t2.Month(), t2.Day(), t2.Hour(), minute*5)
+		filePath := fmt.Sprintf("%s/predict/%.4d%.2d%.2d%.2d%.2d_.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Hour(), minute*5)
 		t2 = t2.Add(time.Duration(5) * time.Minute)
 
 		csvfile, err := os.Create(filePath)
@@ -458,7 +515,7 @@ func GetFileName(date string) string {
 	if date != "" {
 
 		t, err := time.Parse("200601021504", date)
-		t = t.Add(time.Duration(-8) * time.Hour)
+		t = t.Add(time.Duration(-8)*time.Hour + time.Duration(-5)*time.Minute)
 
 		if err != nil {
 			fmt.Println("Error:", err)
@@ -466,14 +523,14 @@ func GetFileName(date string) string {
 
 		index := t.Minute() / 5
 
-		fileName = fmt.Sprintf("../../../data/%d%.2d%.2d%.2d%.2d.csv", t.Year(), t.Month(), t.Day(), t.Hour(), index*5)
+		fileName = fmt.Sprintf("%s/%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Hour(), index*5)
 
 	} else {
 		t = time.Now().UTC()
 
 		index := t.Minute() / 5
 
-		fileName = fmt.Sprintf("../../../data/predict/%d%.2d%.2d%.2d%.2d_.csv", t.Year(), t.Month(), t.Day(), t.Hour(), index*5)
+		fileName = fmt.Sprintf("%s/predict/%d%.2d%.2d%.2d%.2d_.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Hour(), index*5)
 
 	}
 
