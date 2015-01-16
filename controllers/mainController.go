@@ -3,10 +3,21 @@ package controllers
 import (
 	"fmt"
 	"github.com/astaxie/beego"
+	"html/template"
 )
 
 type MainController struct {
 	beego.Controller
+}
+
+func (this *MainController) Get() {
+
+	this.XSRFExpire = 7200
+	this.Data["xsrfdata"] = template.HTML(this.XsrfFormHtml())
+	//ctx.Output.Header("Access-Control-Allow-Origin", "*")
+
+	//this.Ctx.SetHeader("Access-Control-Allow-Origin", "*", true)
+
 }
 
 func (this *MainController) Predict() {
@@ -18,7 +29,6 @@ func (this *MainController) Predict() {
 }
 
 func (this *MainController) Month() {
-	this.Data["xsrfdata"] = template.HTML(this.XsrfFormHtml())
 
 	date, _ := this.Ctx.Input.Params[":date"]
 	locationID, _ := this.Ctx.Input.Params[":locationID"]
@@ -29,6 +39,7 @@ func (this *MainController) Month() {
 
 	speedChartData := GetMonthByLocationID(date, location)
 
+	this.Ctx.Output.Header("Access-Control-Allow-Origin", "*")
 	this.Data["json"] = &speedChartData
 	this.ServeJson()
 
@@ -37,8 +48,6 @@ func (this *MainController) Month() {
 }
 
 func (this *MainController) Day() {
-
-	this.Data["xsrfdata"] = template.HTML(this.XsrfFormHtml())
 
 	date, _ := this.Ctx.Input.Params[":date"]
 
@@ -52,6 +61,7 @@ func (this *MainController) Day() {
 
 	speedChartData := GetDayByLocationID(date, location)
 
+	this.Ctx.Output.Header("Access-Control-Allow-Origin", "*")
 	this.Data["json"] = &speedChartData
 	this.ServeJson()
 
@@ -59,12 +69,12 @@ func (this *MainController) Day() {
 
 func (this *MainController) All() {
 
-	this.Data["xsrfdata"] = template.HTML(this.XsrfFormHtml())
-
+	fmt.Println("all")
 	date, _ := this.Ctx.Input.Params[":date"]
 
 	locations := GetAll(date)
 
+	this.Ctx.Output.Header("Access-Control-Allow-Origin", "*")
 	this.Data["json"] = &locations
 	this.ServeJson()
 

@@ -24,7 +24,7 @@ func (locations ByAverageSpeed) Less(i, j int) bool { return locations[i].Speed1
 
 //
 //回傳所有路段的車速
-func GetAll(date string) string {
+func GetAll(date string) []Location {
 
 	var locations []Location
 
@@ -56,16 +56,16 @@ func GetAll(date string) string {
 		}
 	}
 
-	SpeedMapJson, _ := json.Marshal(locations)
+	//SpeedMapJson, _ := json.Marshal(locations)
 	//fmt.Println(string(SpeedMapJson))
 
-	return string(SpeedMapJson)
+	return locations
 
 }
 
 //
 //回傳目前某個路段的過去一個月的速度歷史資料
-func GetMonthByLocationID(date string, location Location) string {
+func GetMonthByLocationID(date string, location Location) SpeedChart {
 
 	var t time.Time
 	if date != "" {
@@ -119,22 +119,22 @@ func GetMonthByLocationID(date string, location Location) string {
 		speedDays = append(speedDays, speedDay)
 	}
 
-	fmt.Println(results)
+	//fmt.Println(results)
 
-	speedChartData := &SpeedChart{
+	speedChartData := SpeedChart{
 		LocationID: location.LocationID,
 		TimeRange:  30,
 		Data:       speedDays}
 
-	SpeedChartJson, _ := json.Marshal(speedChartData)
+	//SpeedChartJson, _ := json.Marshal(speedChartData)
 	//fmt.Println(string(SpeedChartJson))
 
-	return string(SpeedChartJson)
+	return speedChartData
 }
 
 //
 //回傳某一路段一整天的車速資料,會包含(過去|預測）
-func GetDayByLocationID(date string, locations Location) string {
+func GetDayByLocationID(date string, locations Location) SpeedChart {
 
 	var t time.Time
 
@@ -157,7 +157,9 @@ func GetDayByLocationID(date string, locations Location) string {
 	for h := 0; h < 24; h++ {
 
 		var speedHour SpeedTime
-		var speed1Sum, speed2Sum float64
+		var speed1Sum float64 = 0.0
+		var speed2Sum float64 = 0.0
+		var count int = 0
 		for m := 0; m < 60; m += 5 {
 
 			var fileName string
@@ -195,6 +197,7 @@ func GetDayByLocationID(date string, locations Location) string {
 						speed1Sum += speed1
 						speed2Sum += speed2
 						searchResults = append(searchResults, lines[k])
+						count++
 					}
 				}
 			}
@@ -203,26 +206,28 @@ func GetDayByLocationID(date string, locations Location) string {
 		}
 
 		t2 = t2.Add(time.Hour)
-		fmt.Println(t2)
+		//fmt.Println(t2, count, speed1Sum, speed2Sum)
 
-		count := m/5 + 1
+		if count > 0 {
+			speedHour.Speed1 = int(speed1Sum / float64(count))
+			speedHour.Speed2 = int(speed2Sum / float64(count))
+		} else {
+			speedHour.Speed1 = 0
+			speedHour.Speed2 = 0
+		}
+		fmt.Println("average:", speedHour.Speed1, speedHour.Speed2)
 
-		speedHour.Speed1 = int(speed1Sum/count + 0.5)
-		speedHour.Speed2 = int(speed2Sum/count + 0.5)
 		speedHours = append(speedHours, speedHour)
 	}
 
-	speedChartData := &SpeedChart{
+	speedChartData := SpeedChart{
 		LocationID: locations.LocationID,
 		Name:       GetInterchangeName(freewayID, locations.LocationID),
 		TimeRange:  1,
 		Direction:  direction,
 		Data:       speedHours}
 
-	SpeedChartJson, _ := json.Marshal(speedChartData)
-	fmt.Println(string(SpeedChartJson))
-
-	return string(SpeedChartJson)
+	return speedChartData
 }
 
 func GetLocationsByRegion(regionID string) [][]string {
