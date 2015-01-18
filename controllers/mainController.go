@@ -15,13 +15,13 @@ func (this *MainController) Get() {
 	this.XSRFExpire = 7200
 	this.Data["xsrfdata"] = template.HTML(this.XsrfFormHtml())
 	//ctx.Output.Header("Access-Control-Allow-Origin", "*")
-
 	//this.Ctx.SetHeader("Access-Control-Allow-Origin", "*", true)
 
 }
 
 func (this *MainController) Predict() {
 
+	fmt.Println("Predict")
 	GetSmoothData()
 
 	fmt.Fprint(this.Ctx.ResponseWriter, "predict done")
@@ -78,4 +78,23 @@ func (this *MainController) All() {
 	this.Data["json"] = &locations
 	this.ServeJson()
 
+}
+
+func (this *MainController) Detail() {
+	date, _ := this.Ctx.Input.Params[":date"]
+
+	fmt.Println("(this *MainController) Day()")
+	locationID, _ := this.Ctx.Input.Params[":locationID"]
+
+	fmt.Println(date)
+	fmt.Println(locationID)
+	var location Location
+	location.LocationID = locationID
+
+	speedChartData := GetDetailByLocationID(date, location)
+
+	this.Ctx.Output.Header("Access-Control-Allow-Origin", "*")
+
+	fmt.Fprint(this.Ctx.ResponseWriter, speedChartData)
+	//this.Ctx.Output.Body(speedChartData)
 }

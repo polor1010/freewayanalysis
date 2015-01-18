@@ -134,6 +134,70 @@ func GetMonthByLocationID(date string, location Location) SpeedChart {
 
 //
 //回傳某一路段一整天的車速資料,會包含(過去|預測）
+func GetDetailByLocationID(date string, locations Location) []string {
+
+	var t time.Time
+
+	//UTC time
+	if date != "" {
+		t, _ = time.Parse("200601021504", date)
+	} else {
+		t = time.Now().UTC()
+	}
+
+	day := fmt.Sprintf("%d%.2d%.2d%.2d%.2d", t.Year(), t.Month(), t.Day(), 0, 0)
+	t2, _ := time.Parse("200601021504", day)
+	t2 = t2.Add(time.Hour*time.Duration(-8) + time.Minute*time.Duration(+5)) //限定台灣時區
+	fmt.Println(t2)
+	var results []string
+
+	for h := 0; h < 24; h++ {
+		for m := 0; m < 60; m += 5 {
+
+			var fileName string
+
+			sum1 := t.Hour()*60 + t.Minute()/5*5
+			sum2 := h*60 + m
+
+			if sum1 > sum2 {
+				fileName = fmt.Sprintf("%s/%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Hour(), m)
+				//fmt.Println(fileName)
+			} else {
+				fileName = fmt.Sprintf("%s/predict/%d%.2d%.2d%.2d%.2d_.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Hour(), m)
+				//fmt.Println(fileName)
+			}
+
+			content, err := ioutil.ReadFile(fileName)
+
+			if err != nil {
+				fmt.Println("Error:", err)
+				s := fmt.Sprintf("%2d:%2d %s s1:%d s2:%d tm:%d\r\n", h, m, fileName, sum1, sum2, t.Minute())
+				results = append(results, s)
+			} else {
+
+				lines := strings.Split(string(content), "\r\n")
+
+				locationID := locations.LocationID
+				//freewayID := locations.FreewayID
+
+				for k := 1; k < len(lines)-1; k++ {
+
+					if locationID == strings.Split(lines[k], ",")[2] { //freewayID == strings.Split(lines[k], ",")[1] { //&& {
+						s := fmt.Sprintf("%s,%2d:%2d,%s\r\n", lines[k], h, m, fileName)
+						results = append(results, s)
+					}
+				}
+			}
+		}
+
+		t2 = t2.Add(time.Hour)
+		//fmt.Println(t2, count, speed1Sum, speed2Sum)
+	}
+	return results
+}
+
+//
+//回傳某一路段一整天的車速資料,會包含(過去|預測）
 func GetDayByLocationID(date string, locations Location) SpeedChart {
 
 	var t time.Time
@@ -165,7 +229,7 @@ func GetDayByLocationID(date string, locations Location) SpeedChart {
 			var fileName string
 
 			sum1 := t.Hour()*60 + t.Minute()/5*5
-			sum2 := h*60 + m*5
+			sum2 := h*60 + m
 
 			if sum1 > sum2 {
 				fileName = fmt.Sprintf("%s/%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Hour(), m)
@@ -209,8 +273,8 @@ func GetDayByLocationID(date string, locations Location) SpeedChart {
 		//fmt.Println(t2, count, speed1Sum, speed2Sum)
 
 		if count > 0 {
-			speedHour.Speed1 = int(speed1Sum / float64(count))
-			speedHour.Speed2 = int(speed2Sum / float64(count))
+			speedHour.Speed1 = int(speed1Sum/float64(count) + 0.5)
+			speedHour.Speed2 = int(speed2Sum/float64(count) + 0.5)
 		} else {
 			speedHour.Speed1 = 0
 			speedHour.Speed2 = 0
@@ -239,6 +303,8 @@ func GetLocationsByRegion(regionID string) [][]string {
 }
 
 func GetSmoothData() {
+
+	fmt.Println("GetSmoothData")
 
 	locationList := GetLocationList()
 
