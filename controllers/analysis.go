@@ -304,73 +304,85 @@ func GetLocationsByRegion(regionID string) [][]string {
 
 func GetSmoothData() {
 
-	fmt.Println("GetSmoothData")
-
 	locationList := GetLocationList()
 
-	fileList := GetFileList()
+	t2 := time.Now()
+	t2 = t2.Add(time.Hour * (time.Duration(-8)))
 
-	for _, filePath := range fileList {
+	timeSting := fmt.Sprintf("%d%.2d%.2d%.2d%.2d", t2.Year(), t2.Month(), t2.Day(), 0, 0)
+	t, _ := time.Parse("200601021504", timeSting)
+	t = t.Add(time.Hour * time.Duration(-8)) //utc
 
-		t, _ := time.Parse("../../../data/200601021504.csv", filePath)
-		t = t.Add(time.Hour * time.Duration(8))
+	fmt.Println("GetSmoothData", "time is", t)
 
-		t2 := time.Now().UTC()
-		t2 = t2.Add(time.Hour * (time.Duration(8) + time.Duration(24*7)))
+	for h := 0; h < 24; h++ {
+		for m := 0; m < 60; m += 5 {
+			for f := 0; f < 2; f++ {
+				var filePath string
 
-		if t.Weekday() == t2.Weekday() {
+				if f == 0 {
+					filePath = fmt.Sprintf("%s/predict/%d%.2d%.2d%.2d%.2d", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Hour(), m)
+					if _, err := os.Stat(filePath); os.IsNotExist(err) {
+						//第一個星期的data, 所以沒有預測資料
+						t3 := t.Add(time.Hour * time.Duration(-24*7))
+						filePath = fmt.Sprintf("%s/%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t3.Year(), t3.Month(), t3.Day(), t3.Hour(), m)
 
-			hour := t.Hour()
-			minute := t.Minute()
-
-			data := GetCSVData(filePath)
-
-			if data == nil {
-				fmt.Println("data is nil..")
-				fmt.Println(filePath)
-
-			}
-
-			//row0 is column name
-			for k := 1; k < len(data); k++ {
-
-				freewayId := data[k][1]
-				locationId := data[k][2]
-
-				for i := 0; i < len(locationList); i++ {
-					if (locationList[i].FreewayId == freewayId) && (locationList[i].LocationId == locationId) {
-
-						index := hour*12 + minute/5
-
-						locationList[i].DirectionId[0], _ = strconv.Atoi(data[k][3])
-						locationList[i].DirectionId[1], _ = strconv.Atoi(data[k][5])
-
-						speed1, _ := strconv.ParseFloat(data[k][4], 32)
-						speed2, _ := strconv.ParseFloat(data[k][6], 32)
-
-						if locationList[i].AverageSpeed[0][index] == 0 {
-							locationList[i].AverageSpeed[0][index] = speed1
-
-						} else {
-							locationList[i].AverageSpeed[0][index] = speed1*0.3 + locationList[i].AverageSpeed[0][index]*0.7
-						}
-
-						if locationList[i].AverageSpeed[1][index] == 0 {
-							locationList[i].AverageSpeed[1][index] = speed2
-
-						} else {
-							locationList[i].AverageSpeed[1][index] = speed2*0.3 + locationList[i].AverageSpeed[1][index]*0.7
-						}
-
-						continue
+						//fmt.Println("err", filePath)
 					}
+				} else {
+					filePath = fmt.Sprintf("%s/%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Hour(), m)
 				}
 
+				data := GetCSVData(filePath)
+
+				if data == nil {
+					//fmt.Println("data is nil..", filePath)
+					//log
+				}
+
+				//row0 is column name
+				for k := 1; k < len(data); k++ {
+
+					freewayId := data[k][1]
+					locationId := data[k][2]
+
+					for i := 0; i < len(locationList); i++ {
+						if (locationList[i].FreewayId == freewayId) && (locationList[i].LocationId == locationId) {
+
+							index := h*12 + m/5
+
+							locationList[i].DirectionId[0], _ = strconv.Atoi(data[k][3])
+							locationList[i].DirectionId[1], _ = strconv.Atoi(data[k][5])
+
+							speed1, _ := strconv.ParseFloat(data[k][4], 32)
+							speed2, _ := strconv.ParseFloat(data[k][6], 32)
+
+							if locationList[i].AverageSpeed[0][index] == 0 {
+								locationList[i].AverageSpeed[0][index] = speed1
+
+							} else {
+								locationList[i].AverageSpeed[0][index] = speed1*0.3 + locationList[i].AverageSpeed[0][index]*0.7
+							}
+
+							if locationList[i].AverageSpeed[1][index] == 0 {
+								locationList[i].AverageSpeed[1][index] = speed2
+
+							} else {
+								locationList[i].AverageSpeed[1][index] = speed2*0.3 + locationList[i].AverageSpeed[1][index]*0.7
+							}
+
+							continue
+						}
+					}
+
+				}
 			}
+
 		}
+		t = t.Add(time.Hour)
 	}
 
-	SaveCSVData(locationList)
+	SaveCSVData(t, locationList)
 
 }
 
@@ -535,15 +547,9 @@ func RenameFiles() {
 	}
 }
 
-func SaveCSVData(locationList []LocationInfo) {
+func SaveCSVData(t time.Time, locationList []LocationInfo) {
 
-	t := time.Now().UTC()
-	t = t.Add(time.Duration(8) * time.Hour)
-
-	day := fmt.Sprintf("%d%.2d%.2d%.2d%.2d", t.Year(), t.Month(), t.Day(), 0, 0)
-	t2, _ := time.Parse("200601021504", day)
-	//t2 = t2.Add(time.Duration(-8) * time.Hour)
-	t2 = t2.Add(time.Hour * (time.Duration(-8) + time.Duration(24*7)))
+	t2 := t.Add(time.Hour * (time.Duration(24 * 6)))
 
 	for j := 0; j < TIME_INTERVALS; j++ {
 
@@ -551,6 +557,7 @@ func SaveCSVData(locationList []LocationInfo) {
 
 		filePath := fmt.Sprintf("%s/predict/%.4d%.2d%.2d%.2d%.2d_.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Hour(), minute*5)
 		t2 = t2.Add(time.Duration(5) * time.Minute)
+		//fmt.Println("save ", filePath)
 
 		csvfile, err := os.Create(filePath)
 
