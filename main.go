@@ -9,10 +9,10 @@ import (
 
 func main() {
 	c := cron.New()
-	c.AddFunc("0 0 17 * * *", controllers.GetSmoothData)
+	c.AddFunc("0 0 1 * * *", controllers.GetSmoothData)
 	c.Start()
 
-	controllers.GetSmoothData()
+	//controllers.GetSmoothData()
 
 	beego.Run()
 

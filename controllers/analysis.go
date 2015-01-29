@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -86,7 +87,7 @@ func GetMonthByLocationID(date string, location Location) SpeedChart {
 		var speedDay SpeedTime
 		t = t.Add(-time.Hour * 24)
 
-		fileName := fmt.Sprintf("%s/%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), hour, index*5)
+		fileName := fmt.Sprintf("%s%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), hour, index*5)
 
 		content, err := ioutil.ReadFile(fileName)
 
@@ -160,10 +161,10 @@ func GetDetailByLocationID(date string, locations Location) []string {
 			sum2 := h*60 + m
 
 			if sum1 > sum2 {
-				fileName = fmt.Sprintf("%s/%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Hour(), m)
+				fileName = fmt.Sprintf("%s%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Hour(), m)
 				//fmt.Println(fileName)
 			} else {
-				fileName = fmt.Sprintf("%s/predict/%d%.2d%.2d%.2d%.2d_.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Hour(), m)
+				fileName = fmt.Sprintf("%spredict/%d%.2d%.2d%.2d%.2d_.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Hour(), m)
 				//fmt.Println(fileName)
 			}
 
@@ -212,7 +213,7 @@ func GetDayByLocationID(date string, locations Location) SpeedChart {
 	day := fmt.Sprintf("%d%.2d%.2d%.2d%.2d", t.Year(), t.Month(), t.Day(), 0, 0)
 	t2, _ := time.Parse("200601021504", day)
 	t2 = t2.Add(time.Hour*time.Duration(-8) + time.Minute*time.Duration(+5)) //限定台灣時區
-	fmt.Println(t2)
+	//fmt.Println(t2)
 	var searchResults []string
 	var speedHours []SpeedTime
 	var freewayID string
@@ -232,10 +233,10 @@ func GetDayByLocationID(date string, locations Location) SpeedChart {
 			sum2 := h*60 + m
 
 			if sum1 > sum2 {
-				fileName = fmt.Sprintf("%s/%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Hour(), m)
+				fileName = fmt.Sprintf("%s%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Hour(), m)
 				//fmt.Println(fileName)
 			} else {
-				fileName = fmt.Sprintf("%s/predict/%d%.2d%.2d%.2d%.2d_.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Hour(), m)
+				fileName = fmt.Sprintf("%spredict/%d%.2d%.2d%.2d%.2d_.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Hour(), m)
 				//fmt.Println(fileName)
 			}
 
@@ -305,7 +306,8 @@ func GetLocationsByRegion(regionID string) [][]string {
 func GetSmoothData() {
 
 	locationList := GetLocationList()
-
+	//t2, _ := time.Parse("200601021504", "201501210100")
+	//t2 = t2.UTC()
 	t2 := time.Now()
 	t2 = t2.Add(time.Hour * (time.Duration(-8)))
 
@@ -321,17 +323,19 @@ func GetSmoothData() {
 				var filePath string
 
 				if f == 0 {
-					filePath = fmt.Sprintf("%s/predict/%d%.2d%.2d%.2d%.2d", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Hour(), m)
+					filePath = fmt.Sprintf("%spredict/%d%.2d%.2d%.2d%.2d_.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Hour(), m)
 					if _, err := os.Stat(filePath); os.IsNotExist(err) {
 						//第一個星期的data, 所以沒有預測資料
 						t3 := t.Add(time.Hour * time.Duration(-24*7))
-						filePath = fmt.Sprintf("%s/%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t3.Year(), t3.Month(), t3.Day(), t3.Hour(), m)
+						filePath = fmt.Sprintf("%s%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t3.Year(), t3.Month(), t3.Day(), t3.Hour(), m)
 
 						//fmt.Println("err", filePath)
 					}
 				} else {
-					filePath = fmt.Sprintf("%s/%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Hour(), m)
+					filePath = fmt.Sprintf("%s%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Hour(), m)
 				}
+
+				//fmt.Println(filePath)
 
 				data := GetCSVData(filePath)
 
@@ -382,7 +386,76 @@ func GetSmoothData() {
 		t = t.Add(time.Hour)
 	}
 
+	GetError(t)
+
 	SaveCSVData(t, locationList)
+
+}
+
+func GetError(t time.Time) {
+
+	for h := 0; h < 24; h++ {
+		for m := 0; m < 60; m += 5 {
+
+			filePath := fmt.Sprintf("%s%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Hour(), m)
+
+			data := GetCSVData(filePath)
+
+			filePathP := fmt.Sprintf("%spredict/%d%.2d%.2d%.2d%.2d_.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Hour(), m)
+
+			dataP := GetCSVData(filePathP)
+
+			filePathErr := fmt.Sprintf("%s/predict/%.4d%.2d%.2d%.2d%.2d_err.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Hour(), m)
+
+			csvfile, err := os.Create(filePathErr)
+
+			if err != nil {
+				fmt.Println("Error:", err)
+			}
+
+			defer csvfile.Close()
+
+			fmt.Fprintf(csvfile, "freeway_id,location_id,err1,err2\r\n")
+
+			//row0 is column name
+			for k := 1; k < len(data); k++ {
+
+				for i := 1; i < len(dataP); i++ {
+					if (data[k][1] == dataP[i][1]) && (data[k][2] == dataP[i][2]) {
+						freewayId := data[k][1]
+						locationId := data[k][2]
+
+						s1, _ := strconv.ParseFloat(data[k][4], 32)
+						s2, _ := strconv.ParseFloat(dataP[i][4], 32)
+						s3, _ := strconv.ParseFloat(data[k][6], 32)
+						s4, _ := strconv.ParseFloat(dataP[i][6], 32)
+						err1 := math.Abs(s1 - s2)
+						err2 := math.Abs(s3 - s4)
+
+						//fmt.Println(h, m, dataP[i][1], dataP[i][2], ":", s1, s2, err1, " - ", s3, s4, err2)
+
+						fmt.Fprintf(csvfile, "%s,%s,%.0f,%.0f\r\n", freewayId, locationId, err1, err2)
+					}
+				}
+			}
+
+		}
+		t = t.Add(time.Hour)
+	}
+	/*
+		if f == 0 {
+			filePath =  fmt.Sprintf("%spredict/%d%.2d%.2d%.2d%.2d", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Hour(), m)
+			if _, err := os.Stat(filePath); os.IsNotExist(err) {
+				//第一個星期的data, 所以沒有預測資料
+				t3 := t.Add(time.Hour * time.Duration(-24*7))
+				filePath = fmt.Sprintf("%s%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t3.Year(), t3.Month(), t3.Day(), t3.Hour(), m)
+
+				//fmt.Println("err", filePath)
+			}
+		} else {
+			filePath = fmt.Sprintf("%s%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Hour(), m)
+		}
+	*/
 
 }
 
@@ -474,7 +547,7 @@ func GetFileList() []string {
 
 	var fileList []string
 
-	_ = filepath.Walk("../../../data/", func(path string, f os.FileInfo, err error) error {
+	_ = filepath.Walk(ROOT_PATH, func(path string, f os.FileInfo, err error) error {
 		if strings.Contains(path, "csv") {
 			fileList = append(fileList, path)
 		}
@@ -543,7 +616,7 @@ func RenameFiles() {
 		newFileName := fmt.Sprintf("%.2d%.2d%.2d_%.2d%.2d.csv", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute()/10*10)
 
 		fmt.Println(newFileName)
-		os.Rename(filePath, "../../../data/"+newFileName)
+		os.Rename(filePath, ROOT_PATH+newFileName)
 	}
 }
 

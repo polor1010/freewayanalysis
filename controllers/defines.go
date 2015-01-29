@@ -2,7 +2,7 @@ package controllers
 
 //一天的所有時間區段
 const TIME_INTERVALS int = 24 * 12
-const ROOT_PATH string = "../../../data"
+const ROOT_PATH string = "../../../data/"
 
 type SpeedTime struct {
 	Speed1 int
@@ -26,6 +26,8 @@ type Location struct {
 	Direction2 int
 	Speed1     int
 	Speed2     int
+	Error1     float32
+	Error2     float32
 }
 
 type LocationInfo struct {
