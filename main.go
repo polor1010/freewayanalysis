@@ -13,6 +13,7 @@ func main() {
 	c.Start()
 
 	//controllers.GetSmoothData()
+	//controllers.MoveFiles2()
 
 	beego.Run()
 

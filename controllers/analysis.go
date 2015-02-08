@@ -87,7 +87,7 @@ func GetMonthByLocationID(date string, location Location) SpeedChart {
 		var speedDay SpeedTime
 		t = t.Add(-time.Hour * 24)
 
-		fileName := fmt.Sprintf("%s%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), hour, index*5)
+		fileName := fmt.Sprintf("%s/%.4d/%.2d/%.2d/%.4d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Year(), t.Month(), t.Day(), hour, index*5)
 
 		content, err := ioutil.ReadFile(fileName)
 
@@ -161,10 +161,10 @@ func GetDetailByLocationID(date string, locations Location) []string {
 			sum2 := h*60 + m
 
 			if sum1 > sum2 {
-				fileName = fmt.Sprintf("%s%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Hour(), m)
+				fileName = fmt.Sprintf("%s/%.4d/%.2d/%.2d/%.4d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Year(), t2.Month(), t2.Day(), t2.Hour(), m)
 				//fmt.Println(fileName)
 			} else {
-				fileName = fmt.Sprintf("%spredict/%d%.2d%.2d%.2d%.2d_.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Hour(), m)
+				fileName = fmt.Sprintf("%spredict/%.4d/%.2d/%.2d/%.4d%.2d%.2d%.2d%.2d_.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Year(), t2.Month(), t2.Day(), t2.Hour(), m)
 				//fmt.Println(fileName)
 			}
 
@@ -233,10 +233,10 @@ func GetDayByLocationID(date string, locations Location) SpeedChart {
 			sum2 := h*60 + m
 
 			if sum1 > sum2 {
-				fileName = fmt.Sprintf("%s%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Hour(), m)
+				fileName = fmt.Sprintf("%s/%.4d/%.2d/%.2d/%.4d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Year(), t2.Month(), t2.Day(), t2.Hour(), m)
 				//fmt.Println(fileName)
 			} else {
-				fileName = fmt.Sprintf("%spredict/%d%.2d%.2d%.2d%.2d_.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Hour(), m)
+				fileName = fmt.Sprintf("%spredict/%.4d/%.2d/%.2d/%.4d%.2d%.2d%.2d%.2d_.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Year(), t2.Month(), t2.Day(), t2.Hour(), m)
 				//fmt.Println(fileName)
 			}
 
@@ -305,15 +305,18 @@ func GetLocationsByRegion(regionID string) [][]string {
 
 func GetSmoothData() {
 
+	fmt.Println("GetSmoothData")
 	locationList := GetLocationList()
-	//t2, _ := time.Parse("200601021504", "201501210100")
-	//t2 = t2.UTC()
-	t2 := time.Now()
+	t2, _ := time.Parse("200601021504", "201501210100")
+	t2 = t2.UTC()
+	//t2 := time.Now()
 	t2 = t2.Add(time.Hour * (time.Duration(-8)))
 
 	timeSting := fmt.Sprintf("%d%.2d%.2d%.2d%.2d", t2.Year(), t2.Month(), t2.Day(), 0, 0)
 	t, _ := time.Parse("200601021504", timeSting)
 	t = t.Add(time.Hour * time.Duration(-8)) //utc
+
+	GetError(t)
 
 	fmt.Println("GetSmoothData", "time is", t)
 
@@ -323,24 +326,24 @@ func GetSmoothData() {
 				var filePath string
 
 				if f == 0 {
-					filePath = fmt.Sprintf("%spredict/%d%.2d%.2d%.2d%.2d_.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Hour(), m)
+					filePath = fmt.Sprintf("%spredict/%.4d/%.2d/%.2d/%d%.2d%.2d%.2d%.2d_.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Year(), t.Month(), t.Day(), t.Hour(), m)
 					if _, err := os.Stat(filePath); os.IsNotExist(err) {
 						//第一個星期的data, 所以沒有預測資料
 						t3 := t.Add(time.Hour * time.Duration(-24*7))
-						filePath = fmt.Sprintf("%s%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t3.Year(), t3.Month(), t3.Day(), t3.Hour(), m)
+						filePath = fmt.Sprintf("%s/%.4d/%.2d/%.2d/%.4d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t3.Year(), t3.Month(), t3.Day(), t3.Year(), t3.Month(), t3.Day(), t3.Hour(), m)
 
 						//fmt.Println("err", filePath)
 					}
 				} else {
-					filePath = fmt.Sprintf("%s%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Hour(), m)
+					filePath = fmt.Sprintf("%s/%.4d/%.2d/%.2d/%.4d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Year(), t.Month(), t.Day(), t.Hour(), m)
 				}
 
-				//fmt.Println(filePath)
+				fmt.Println(filePath)
 
 				data := GetCSVData(filePath)
 
 				if data == nil {
-					//fmt.Println("data is nil..", filePath)
+					fmt.Println("data is nil..", filePath)
 					//log
 				}
 
@@ -386,8 +389,6 @@ func GetSmoothData() {
 		t = t.Add(time.Hour)
 	}
 
-	GetError(t)
-
 	SaveCSVData(t, locationList)
 
 }
@@ -397,20 +398,22 @@ func GetError(t time.Time) {
 	for h := 0; h < 24; h++ {
 		for m := 0; m < 60; m += 5 {
 
-			filePath := fmt.Sprintf("%s%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Hour(), m)
+			filePath := fmt.Sprintf("%s/%.4d/%.2d/%.2d/%.4d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Year(), t.Month(), t.Day(), t.Hour(), m)
 
 			data := GetCSVData(filePath)
 
-			filePathP := fmt.Sprintf("%spredict/%d%.2d%.2d%.2d%.2d_.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Hour(), m)
+			folderPath := fmt.Sprintf("%spredict/%.4d/%.2d/%.2d/", ROOT_PATH, t.Year(), t.Month(), t.Day())
+
+			filePathP := fmt.Sprintf("%s%d%.2d%.2d%.2d%.2d_.csv", folderPath, t.Year(), t.Month(), t.Day(), t.Hour(), m)
 
 			dataP := GetCSVData(filePathP)
 
-			filePathErr := fmt.Sprintf("%s/predict/%.4d%.2d%.2d%.2d%.2d_err.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Hour(), m)
+			filePathErr := fmt.Sprintf("%s%.4d%.2d%.2d%.2d%.2d_err.csv", folderPath, t.Year(), t.Month(), t.Day(), t.Hour(), m)
 
 			csvfile, err := os.Create(filePathErr)
 
 			if err != nil {
-				fmt.Println("Error:", err)
+				fmt.Println("[Error]:", err)
 			}
 
 			defer csvfile.Close()
@@ -605,6 +608,60 @@ func SaveDataByLocation(locationList []LocationInfo) {
 }
 */
 
+func MoveFiles() {
+
+	t, _ := time.Parse("200601021504", "201502010000")
+
+	for i := 0; i < 31; i++ {
+		folderPath := fmt.Sprintf("%s%.4d/%.2d/%.2d/", ROOT_PATH, t.Year(), t.Month(), t.Day())
+
+		os.MkdirAll(folderPath, 0777)
+
+		//fmt.Println(folderPath)
+
+		for h := 0; h < 24; h++ {
+			for m := 0; m < 60; m += 5 {
+
+				filePathSrc := fmt.Sprintf("%s%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), h, m)
+				filePathDes := fmt.Sprintf("%s%d%.2d%.2d%.2d%.2d.csv", folderPath, t.Year(), t.Month(), t.Day(), h, m)
+
+				fmt.Println(filePathSrc, filePathDes)
+
+				os.Rename(filePathSrc, filePathDes)
+
+			}
+		}
+		t = t.Add(time.Hour * 24)
+	}
+
+}
+
+func MovePredictFiles() {
+
+	t, _ := time.Parse("200601021504", "201501010000")
+
+	for i := 0; i < 31; i++ {
+		folderPath := fmt.Sprintf("%spredict/%.4d/%.2d/%.2d/", ROOT_PATH, t.Year(), t.Month(), t.Day())
+
+		os.MkdirAll(folderPath, 0777)
+
+		//fmt.Println(folderPath)
+
+		for h := 0; h < 24; h++ {
+			for m := 0; m < 60; m += 5 {
+
+				filePathSrc := fmt.Sprintf("%spredict/%d%.2d%.2d%.2d%.2d_.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), h, m)
+				filePathDes := fmt.Sprintf("%s%d%.2d%.2d%.2d%.2d_.csv", folderPath, t.Year(), t.Month(), t.Day(), h, m)
+
+				os.Rename(filePathSrc, filePathDes)
+
+			}
+		}
+		t = t.Add(time.Hour * 24)
+	}
+
+}
+
 func RenameFiles() {
 
 	fileList := GetFileList()
@@ -626,11 +683,16 @@ func SaveCSVData(t time.Time, locationList []LocationInfo) {
 
 	for j := 0; j < TIME_INTERVALS; j++ {
 
+		folderPath := fmt.Sprintf("%spredict/%.4d/%.2d/%.2d/", ROOT_PATH, t2.Year(), t2.Month(), t2.Day())
+
+		os.MkdirAll(folderPath, 0777)
+
 		minute := j % 12
 
-		filePath := fmt.Sprintf("%s/predict/%.4d%.2d%.2d%.2d%.2d_.csv", ROOT_PATH, t2.Year(), t2.Month(), t2.Day(), t2.Hour(), minute*5)
+		filePath := fmt.Sprintf("%s%.4d%.2d%.2d%.2d%.2d_.csv", folderPath, t2.Year(), t2.Month(), t2.Day(), t2.Hour(), minute*5)
 		t2 = t2.Add(time.Duration(5) * time.Minute)
-		//fmt.Println("save ", filePath)
+
+		fmt.Println("save ", filePath)
 
 		csvfile, err := os.Create(filePath)
 
@@ -674,14 +736,14 @@ func GetFileName(date string) string {
 
 		index := t.Minute() / 5
 
-		fileName = fmt.Sprintf("%s/%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Hour(), index*5)
+		fileName = fmt.Sprintf("%s/%.4d/%.2d/%.2d/%d%.2d%.2d%.2d%.2d.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Year(), t.Month(), t.Day(), t.Hour(), index*5)
 
 	} else {
 		t = time.Now().UTC()
 
 		index := t.Minute() / 5
 
-		fileName = fmt.Sprintf("%s/predict/%d%.2d%.2d%.2d%.2d_.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Hour(), index*5)
+		fileName = fmt.Sprintf("%s/predict/%.4d/%.2d/%.2d/%d%.2d%.2d%.2d%.2d_.csv", ROOT_PATH, t.Year(), t.Month(), t.Day(), t.Year(), t.Month(), t.Day(), t.Hour(), index*5)
 
 	}
 
